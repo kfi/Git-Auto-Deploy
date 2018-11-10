@@ -1,9 +1,25 @@
-FROM google/python-runtime
+FROM python:2.7
 
-RUN apt-get update && \
-    apt-get -y install openssh-client
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y gosu; \
+    rm -rf /var/lib/apt/lists/*; \
+# verify that the binary works
+    gosu nobody true; \
+# setup .ssh folders
+    mkdir -p /root/.ssh; \
+    chmod 0700 /root/.ssh; \
+    mkdir -p /var/www/.ssh; \
+    chown -R 33:33 /var/www;
 
-RUN mkdir $HOME/.ssh && chmod 600 $HOME/.ssh
-COPY deploy_rsa /root/.ssh/id_rsa
+WORKDIR /usr/src/app
 
-ENTRYPOINT ["/env/bin/python", "-u", "GitAutoDeploy.py", "--ssh-keyscan"]
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . ./
+
+COPY ./docker-entrypoint.sh /
+ENTRYPOINT ["/docker-entrypoint.sh"]
+
+CMD ["python", "-m", "gitautodeploy"]

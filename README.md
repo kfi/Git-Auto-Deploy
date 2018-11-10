@@ -1,4 +1,10 @@
 [![Build Status](https://travis-ci.org/olipo186/Git-Auto-Deploy.svg?branch=master)](https://travis-ci.org/olipo186/Git-Auto-Deploy)
+
+# Mods to root repo
+
+ - Runs as a www-data instead of root
+ - [Extended Docker support](#docker-instructions)
+
 # What is it?
 
 Git-Auto-Deploy consists of a small HTTP server that listens for Webhook requests sent from GitHub, GitLab or Bitbucket servers. This application allows you to continuously and automatically deploy your projects each time you push new commits to your repository.</p>
@@ -122,6 +128,40 @@ To make your git provider send notifications to ```Git-Auto-Deploy``` you will n
 1. Go to your repository -> Settings -> Webhooks -> Add webhook
 2. In "URL", enter your hostname and port (your-host:8001)
 3. Hit "Save"
+
+# Docker Instructions
+
+Build the image
+
+    docker build -t alkima/gitautodeploy .
+
+Run the image
+
+    docker run --rm -v $(pwd)/deploy_key:/root/.ssh/id_rsa -v $(pwd)/config.json:/usr/src/app/config.json -v $(pwd)/data/web:/var/www/html alkima/gitautodeploy
+
+Sample docker-compose.yml for use with traefik
+
+```
+version: '3'
+services:
+  gitautodeploy:
+    image: alkima/gitautodeploy
+    restart: unless-stopped
+    networks:
+      - web
+      - default
+    volumes:
+      - ./data/web:/var/www/html
+      - ./etc/gitautodeploy/id_rsa:/root/.ssh/id_rsa
+      - ./etc/gitautodeploy/config.json:/usr/src/app/config.json
+    environment:
+      - TZ
+    labels:
+      - "traefik.enable=true"
+      - "traefik.port=8001"
+      - "traefik.docker.network=web"
+      - "traefik.frontend.rule=Host:gitautodeploy${DELIMITER}${DOMAIN}"
+```
 
 # More documentation
 
